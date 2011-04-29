@@ -8,6 +8,7 @@
 	##Include some parts of the engine
 	require_once(DOCROOT . '/symphony/lib/boot/bundle.php');
 	require_once(TOOLKIT . '/class.lang.php');
+	require_once(CORE . '/class.errorhandler.php');
 	require_once(CORE . '/class.log.php');
 	require_once('class.image.php');
 
@@ -18,14 +19,14 @@
 	define_safe('MODE_JCROP', 4);
 
 	set_error_handler('__errorHandler');
-	
+
 	if (method_exists('Lang','load')) {
 		Lang::load(LANG . '/lang.%s.php', ($settings['symphony']['lang'] ? $settings['symphony']['lang'] : 'en'));
 	}
 	else {
 		Lang::init(LANG . '/lang.%s.php', ($settings['symphony']['lang'] ? $settings['symphony']['lang'] : 'en'));
 	}
-		
+
 	function processParams($string){
 
 		$param = (object)array(
@@ -101,22 +102,7 @@
 
 		if(error_reporting() != 0 && in_array($errno, array(E_WARNING, E_USER_WARNING, E_ERROR, E_USER_ERROR))){
 			$Log = new Log(ACTIVITY_LOG);
-
-			$Log->pushToLog("{$errno} - ".strip_tags((is_object($errstr) ? $errstr->generate() : $errstr)).($errfile ? " in file {$errfile}" : '') . ($errline ? " on line {$errline}" : ''), ($errno == E_WARNING || $errno == E_USER_WARNING ? Log::WARNING : Log::ERROR), true);
-
-/*
-		stdClass Object
-		(
-		    [mode] => 1
-		    [width] => 100
-		    [height] => 210
-		    [position] => 0
-		    [background] => 0
-		    [file] => dimages/ribbon.gif
-		    [external] =>
-		)
-*/
-
+			$Log->pushToLog("{$errno} - ".strip_tags((is_object($errstr) ? $errstr->generate() : $errstr)).($errfile ? " in file {$errfile}" : '') . ($errline ? " on line {$errline}" : ''), $errno, true);
 			$Log->pushToLog(
 				sprintf(
 					'Image class param dump - mode: %d, width: %d, height: %d, position: %d, background: %d, file: %s, external: %d, raw input: %s',
@@ -128,38 +114,37 @@
 					$param->file,
 					(bool)$param->external,
 					$_GET['param']
-				), Log::NOTICE, true
+				), E_NOTICE, true
 			);
 		}
-
 	}
 
 	$meta = $cache_file = NULL;
 
 	$image_path = ($param->external === true ? "http://{$param->file}" : WORKSPACE . "/{$param->file}");
-	
+
 	if($param->external !== true){
-		
+
 		$last_modified = filemtime($image_path);
-		$last_modified_gmt = gmdate('r', $last_modified);
+		$last_modified_gmt = gmdate('D, d M Y H:i:s', $last_modified) . ' GMT';
 		$etag = md5($last_modified . $image_path);
-		
-	    header(sprintf('ETag: "%s"', $etag));
 
-	    if(isset($_SERVER['HTTP_IF_MODIFIED_SINCE']) || isset($_SERVER['HTTP_IF_NONE_MATCH'])){
-	        if($_SERVER['HTTP_IF_MODIFIED_SINCE'] == $last_modified_gmt || str_replace('"', NULL, stripslashes($_SERVER['HTTP_IF_NONE_MATCH'])) == $etag){
-	            header('HTTP/1.1 304 Not Modified');
-	            exit();
-	        }
-	    }
+		header(sprintf('ETag: "%s"', $etag));
 
-	    header('Last-Modified: ' . $last_modified_gmt);
-	    header('Cache-Control: public');
+		if(isset($_SERVER['HTTP_IF_MODIFIED_SINCE']) || isset($_SERVER['HTTP_IF_NONE_MATCH'])){
+			if($_SERVER['HTTP_IF_MODIFIED_SINCE'] == $last_modified_gmt || str_replace('"', NULL, stripslashes($_SERVER['HTTP_IF_NONE_MATCH'])) == $etag){
+				header('HTTP/1.1 304 Not Modified');
+				exit();
+			}
+		}
 
-	} 
-	
+		header('Last-Modified: ' . $last_modified_gmt);
+		header('Cache-Control: public');
+
+	}
+
 	else {
-		
+
 		$rules = file(MANIFEST . '/jit-trusted-sites', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
 		$allowed = false;
 
@@ -205,7 +190,7 @@
 
 		elseif(is_file($cache_file)){
 			$image_path = $cache_file;
-			@touch($cache_file);
+			touch($cache_file);
 			$param->mode = MODE_NONE;
 		}
 	}
@@ -230,6 +215,10 @@
 	try{
 		$method = 'load' . ($param->external === true ? 'External' : NULL);
 		$image = call_user_func_array(array('Image', $method), array($image_path));
+
+		if(!$image instanceof Image) {
+			throw new Exception(__('Error generating image'));
+		}
 	}
 	catch(Exception $e){
 		header('HTTP/1.0 404 Not Found');
@@ -294,4 +283,4 @@
 		$image->save($cache_file, intval($settings['image']['quality']));
 	}
 
-	exit();
+	exit;
