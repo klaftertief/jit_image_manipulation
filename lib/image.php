@@ -27,6 +27,7 @@
 	define_safe('MODE_RESIZE_CROP', 2);
 	define_safe('MODE_CROP', 3);
 	define_safe('MODE_FIT', 4);
+	define_safe('MODE_JCROP', 5);
 	define_safe('CACHING', ($settings['image']['cache'] == 1 ? true : false));
 
 	set_error_handler('__errorHandler');
@@ -39,7 +40,9 @@
 			'position' => 0,
 			'background' => 0,
 			'file' => 0,
-			'external' => false
+			'external' => false,
+			'xpos' => 0,
+			'ypos' => 0
 		);
 
 		// Check for matching recipes
@@ -135,6 +138,19 @@
 			$param->height = (int)$matches[0][3];
 			$param->external = (bool)$matches[0][4];
 			$param->file = $matches[0][5];
+		}
+
+		// Mode 5: JCrop
+		elseif(preg_match_all('/^(5)\/([0-9]+)\/([0-9]+)\/([0-9]+)\/([0-9]+)\/([0-9]+)\/([0-9]+)\/(?:(0|1)\/)?(.+)$/i', $string, $matches, PREG_SET_ORDER)){
+			$param->mode = (int)$matches[0][1];
+			$param->crop_width = (int)$matches[0][2];
+			$param->crop_height = (int)$matches[0][3];
+			$param->xpos = (int)$matches[0][4];
+			$param->ypos = (int)$matches[0][5];
+			$param->width = (int)$matches[0][6];
+			$param->height = (int)$matches[0][7];
+			$param->external = (bool)$matches[0][8];
+			$param->file = $matches[0][9];
 		}
 
 		// Mode 0: Direct display of image
@@ -389,6 +405,11 @@
 
 		case MODE_CROP:
 			$image->applyFilter('crop', array($dst_w, $dst_h, $param->position, $param->background));
+			break;
+
+		case MODE_JCROP:
+			$image->applyFilter('jcrop', array($param->crop_width, $param->crop_height, $param->xpos, $param->ypos, $param->background));
+			$image->applyFilter('resize', array($param->width, $param->height));
 			break;
 	}
 
