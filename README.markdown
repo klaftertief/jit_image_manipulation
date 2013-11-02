@@ -1,17 +1,10 @@
-# JIT Image Manipulation #
+# JIT Image Manipulation
 
 A simple way to manipulate images "just in time" via the URL. Supports caching, image quality settings and loading of offsite images.
 
-- Version: 1.18
-- Date: 24th March 2013
-- Requirements: Symphony 2.3.2 or later
-- Author: Alistair Kearney, alistair@symphony-cms.com
-- GitHub Repository: <http://github.com/symphonycms/jit_image_manipulation>
-
-
 ## Installation
 
-Information about [installing and updating extensions](http://symphony-cms.com/learn/tasks/view/install-an-extension/) can be found in the [Symphony documentation](http://symphony-cms.com/learn/).
+Information about [installing and updating extensions](http://getsymphony.com/learn/tasks/view/install-an-extension/) can be found in the [Symphony documentation](http://getsymphony.com/learn/).
 
 ## Updating
 
