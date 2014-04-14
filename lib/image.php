@@ -48,7 +48,8 @@
 		// Check for matching recipes
 		if(file_exists(WORKSPACE . '/jit-image-manipulation/recipes.php')) include(WORKSPACE . '/jit-image-manipulation/recipes.php');
 
-		if (is_array($recipes) && !empty($recipes)) {
+		// check to see if $recipes is even available before even checking if it is an array
+		if (!empty($recipes) && is_array($recipes)) {
 			foreach($recipes as $recipe) {
 				// Is the mode regex? If so, bail early and let not JIT process it.
 				if($recipe['mode'] === 'regex' && preg_match($recipe['url-parameter'], $string)) {
@@ -303,7 +304,7 @@
 	if($param->mode == MODE_NONE){
 		if(
 			// If the external file still exists
-			($param->external && Image::getHttpResponseCode($original_file) !== 200)
+			($param->external && Image::getHttpResponseCode($original_file) != 200)
 			// If the file is local, does it exist and can we read it?
 			|| ($param->external === FALSE && (!file_exists($original_file) || !is_readable($original_file)))
 		) {
